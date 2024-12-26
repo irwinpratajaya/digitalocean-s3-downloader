@@ -1,15 +1,23 @@
 {
   "name": "download-digitalocean-spaces",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js",
+    "watch": "tsc -w"
   },
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Download files from DigitalOcean Spaces with TypeScript",
   "dependencies": {
     "aws-sdk": "^2.1692.0",
     "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/aws-sdk": "^0.0.42",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
   }
 }

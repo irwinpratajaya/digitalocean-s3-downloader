@@ -10,6 +10,11 @@ package-lock.json
 # Downloaded files
 files/
 
+# TypeScript
+dist/
+*.tsbuildinfo
+.tscache/
+
 # macOS
 .DS_Store
 .AppleDouble
