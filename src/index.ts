@@ -50,28 +50,50 @@ const s3 = new AWS.S3({
   s3ForcePathStyle: false,
 });
 
-async function listObjects(): Promise<SpaceFile[]> {
-  const params: AWS.S3.ListObjectsRequest = {
-    Bucket: env.SPACES_BUCKET,
-  };
+async function listAllObjects(): Promise<SpaceFile[]> {
+  const allFiles: SpaceFile[] = [];
+  let isTruncated = true;
+  let marker: string | undefined;
+  let totalFound = 0;
 
-  try {
-    const data = await s3.listObjects(params).promise();
-    if (!data.Contents) {
-      return [];
+  while (isTruncated) {
+    const params: AWS.S3.ListObjectsRequest = {
+      Bucket: env.SPACES_BUCKET,
+      Marker: marker,
+      MaxKeys: 1000, // Maximum allowed by the API
+    };
+
+    try {
+      const data = await s3.listObjects(params).promise();
+      
+      if (!data.Contents) {
+        break;
+      }
+
+      const files = data.Contents
+        .filter((obj): obj is AWS.S3.Object & { Size: number } => obj.Size !== undefined && obj.Size > 0 && obj.Key !== undefined)
+        .map(obj => ({
+          Key: obj.Key!,
+          Size: obj.Size
+        }));
+
+      allFiles.push(...files);
+      totalFound += files.length;
+      console.log(`Found ${totalFound} files so far...`);
+
+      // Check if there are more files to fetch
+      isTruncated = !!data.IsTruncated;
+      if (isTruncated && data.Contents && data.Contents.length > 0) {
+        marker = data.Contents[data.Contents.length - 1].Key;
+      }
+    } catch (err) {
+      console.error('Error listing bucket contents:', err);
+      process.exit(1);
     }
-
-    console.log("Found", data.Contents.length, "files");
-    return data.Contents
-      .filter((obj): obj is AWS.S3.Object & { Size: number } => obj.Size !== undefined && obj.Size > 0)
-      .map(obj => ({
-        Key: obj.Key!,
-        Size: obj.Size
-      }));
-  } catch (err) {
-    console.error('Error listing bucket contents:', err);
-    process.exit(1);
   }
+
+  console.log(`Total files found: ${allFiles.length}`);
+  return allFiles;
 }
 
 async function downloadFile(file: SpaceFile): Promise<void> {
@@ -119,7 +141,7 @@ async function downloadFile(file: SpaceFile): Promise<void> {
     if (fs.existsSync(downloadPath)) {
       fs.unlinkSync(downloadPath);
     }
-    throw err; // Re-throw to handle in downloadBatch
+    throw err;
   }
 }
 
@@ -156,7 +178,7 @@ async function downloadBatch(files: SpaceFile[]): Promise<void> {
 
 async function main(): Promise<void> {
   try {
-    const files = await listObjects();
+    const files = await listAllObjects();
     console.log(`Starting download of ${files.length} files...`);
     await downloadBatch(files);
     console.log('\nSuccess! All files downloaded :-)');

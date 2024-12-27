@@ -1,5 +1,5 @@
 {
-  "name": "download-digitalocean-spaces",
+  "name": "digitalocean-s3-downloader",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
