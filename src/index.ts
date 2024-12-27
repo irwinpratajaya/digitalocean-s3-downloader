@@ -1,7 +1,8 @@
 import AWS from 'aws-sdk';
 import fs from 'fs';
 import path from 'path';
-import { pipeline } from 'stream/promises';
+import { pipeline as pipelineCallback } from 'stream';
+import { promisify } from 'util';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -49,6 +50,9 @@ const s3 = new AWS.S3({
   region: env.SPACES_REGION,
   s3ForcePathStyle: false,
 });
+
+// Promisify pipeline
+const pipeline = promisify(pipelineCallback);
 
 async function listAllObjects(): Promise<SpaceFile[]> {
   const allFiles: SpaceFile[] = [];
@@ -173,7 +177,7 @@ async function downloadBatch(files: SpaceFile[]): Promise<void> {
   }
 
   // Wait for all downloads to complete
-  await Promise.allSettled(results);
+  await Promise.all(results.map(p => p.catch(e => e)));
 }
 
 async function main(): Promise<void> {
